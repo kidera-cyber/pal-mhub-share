@@ -124,8 +124,8 @@ function vOverview(){
  function stat(n,l,s){return card('<div class="ct-lab">'+l+'</div><div class="ct-num">'+n+'</div>'+(s?'<div class="ct-lab">'+s+'</div>':''));}
  var fixed='<div class="ct-sech">設計基盤（固定値）</div><div class="ct-grid g4">'+
   stat('36','代表ペルソナ','設計マップ準拠')+stat('7','設計レイヤー','27軸・302項目')+stat('133','設計上の立場','組合せの母数')+stat('6','ペルソナ分類','経営〜支える側')+'</div>';
- var live='<div class="ct-sech">登録・稼働状況（実数）</div><div class="ct-grid g4">'+
-  stat(reg.length,'登録済み仮想顧客','36体から追加')+stat(comp.length,'登録済み仮想企業','意思決定検証用')+stat(runs.length,'検証プロジェクト','シミュレーション実行')+stat(reqs.length,'要件定義書','分析から生成')+'</div>';
+ var C=(window.CTWDB?window.CTWDB.counts():{});var live='<div class="ct-sech">登録・稼働状況（実数・DEMOデータ）</div><div class="ct-grid g4">'+
+  stat((C.companies||0),'仮想企業','DEMO')+stat((C.contacts||0)+(window.CTWDB?window.CTWDB.virtualCustomers().length:0),'仮想顧客','72名+生成')+stat((C.campaigns||0),'施策','整合ファネル')+stat((C.opps||0),'仮想商談','受注含む')+'</div><div class="ct-grid g4" style="margin-top:10px">'+stat((C.projects||0),'検証プロジェクト','')+stat(runs.length,'検証実行','履歴')+stat((C.interviews||0),'インタビュー','')+stat((C.calibrations||0),'モデル補正','')+'</div>';
  var qa='<div class="ct-sech">クイックアクション</div><div class="ct-grid g3">'+
   [['新規シミュレーション','simulation'],['仮想顧客ライブラリ','personas'],['1on1・グループ討議','interview'],['仮想企業で稟議検証','company'],['要件定義書を作成','analysis'],['市場環境を変える','market']].map(function(a){return '<button class="ct-btn sec" style="text-align:left;padding:14px" onclick="CTW.go(\''+a[1]+'\')">→ '+a[0]+'</button>';}).join('')+'</div>';
  var flow='<div class="ct-sech">意思決定を変える5ステップ</div><div class="ct-flow">'+
@@ -241,7 +241,7 @@ function vMarket(){
 var sim={cat:'PRODUCT',angle:ANGLES[0],state:'通常期',personas:[6,10,11,24],plans:['A案','B案','C案'],theme:'Core Time',copy:'物流現場の勤怠・工数を可視化し、管理業務の改善を支援。'};
 function vSimulation(){
  var catCards='<div class="ct-grid g3" style="margin-bottom:6px">'+CATEGORIES.map(function(c){return '<button class="ct-btn '+(sim.cat===c[0]?'':'sec')+'" style="text-align:left" onclick="CTW.setSim(\'cat\',\''+c[0]+'\')">'+badge(c[0],c[2])+'<div style="margin-top:4px">'+c[1]+'</div></button>';}).join('')+'</div>';
- var checks=P.map(function(p){return '<label class="ct-chip"><input type="checkbox" value="'+p.id+'" '+(sim.personas.indexOf(p.id)>=0?'checked':'')+' onchange="CTW.simTog('+p.id+')"><span class="ct-tag">'+String(p.id).padStart(2,'0')+'</span>'+esc(p.name)+' '+badge(p.dx,p.dxcls)+'</label>';}).join('');
+ var GEN=(window.CTWDB?window.CTWDB.virtualCustomers():[]).map(function(v){return {id:v.id,name:v.name,dx:v.dx,dxcls:DXC[v.dx]||'b-grey'};});var checks=P.concat(GEN).map(function(p){return '<label class="ct-chip"><input type="checkbox" value="'+p.id+'" '+(sim.personas.indexOf(p.id)>=0?'checked':'')+' onchange="CTW.simTog('+p.id+')"><span class="ct-tag">'+(typeof p.id==='number'?String(p.id).padStart(2,'0'):'★')+'</span>'+esc(p.name)+' '+badge(p.dx,p.dxcls)+'</label>';}).join('');
  var left=card('<h3>検証条件</h3>'+catCards+
   '<label class="ct-field">検証テーマ / 対象商材</label><input type="text" value="'+esc(sim.theme)+'" oninput="CTW.setSim(\'theme\',this.value)">'+
   '<label class="ct-field">訴求軸</label><select onchange="CTW.setSim(\'angle\',this.value)">'+ANGLES.map(function(a){return '<option'+(sim.angle===a?' selected':'')+'>'+a+'</option>';}).join('')+'</select>'+
@@ -256,22 +256,24 @@ function vSimulation(){
   '<div class="ct-grid g2" style="grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)">'+left+'<div>'+presetBtns+right+'</div></div>'+
   demoNote('スコアは比較体験用の固定ルールによる関心指数であり、購入確率・CVRではありません。自由入力はメモとして表示し、意味解析は行いません。');
 }
+function ctwIdNum(id){id=String(id);var h=0;for(var i=0;i<id.length;i++)h=(h*31+id.charCodeAt(i))>>>0;return h;}
+function allP(id){var p=P.filter(function(x){return x.id===id;})[0];if(p)return p;if(window.CTWDB){var v=window.CTWDB.virtualCustomers().filter(function(x){return String(x.id)===String(id);})[0];if(v){return {id:v.id,name:v.name,group:v.group,dx:v.dx,dxcls:DXC[v.dx]||'b-grey',concern:v.concern,decision:v.decision};}}return null;}
 function scoreOf(p,plan){
- var base=46+((p.id*7+plan.charCodeAt(0))%14);
+ var base=46+((ctwIdNum(p.id)%14));
  var fit=ANGLE_FIT[sim.angle]||{dx:[],role:[]};
  if(fit.dx.indexOf(p.dx)>=0)base+=22;
  if(fit.role.indexOf(p.decision)>=0)base+=8;
- var f=STATE_FOCUS[sim.state]||{};
  if((sim.state.indexOf('繁忙')>=0)&&p.group==='hakobu')base-=10;
  if((sim.state.indexOf('予算')>=0)&&p.decision==='高')base+=10;
  if((sim.state.indexOf('法改正')>=0)&&sim.angle.indexOf('法対応')>=0)base+=12;
  if(p.dx==='反発'||p.dx==='無関心')base-=12;
  if(plan==='B案')base+=3;if(plan==='C案')base-=4;
+ try{var cal=load('pal_mhub_twin_v1_calib_live',null);if(cal){base+=Math.round((cal.interest-55)/5);base-=Math.round((cal.barrier-55)/6);base-=Math.round((cal.price-50)/8);}}catch(e){}
  return Math.max(8,Math.min(97,Math.round(base)));
 }
 function runSim(){
  if(!sim.personas.length){return;}
- var rows=sim.personas.map(function(id){var p=P.filter(function(x){return x.id===id;})[0];var scores=sim.plans.map(function(pl){return scoreOf(p,pl);});return {id:id,name:p.name,p:p,scores:scores,best:Math.max.apply(null,scores)};});
+ var rows=sim.personas.map(function(id){var p=allP(id);if(!p)return null;var scores=sim.plans.map(function(pl){return scoreOf(p,pl);});return {id:id,name:p.name,p:p,scores:scores,best:Math.max.apply(null,scores)};}).filter(Boolean);
  rows.sort(function(a,b){return b.best-a.best;});
  var run={id:uid('run'),at:nowISO(),cat:sim.cat,theme:sim.theme,angle:sim.angle,state:sim.state,plans:sim.plans.slice(),rows:rows,personaIds:sim.personas.slice()};
  save('lastRun',run);
@@ -401,7 +403,10 @@ function vRoadmap(){
 /* ---------- ルーティング ---------- */
 var VIEWS={overview:vOverview,personas:vPersonas,designmap:vDesignmap,company:vCompany,market:vMarket,simulation:vSimulation,interview:vInterview,analysis:vAnalysis,dev:vDev,calibration:vCalibration,history:vHistory,roadmap:vRoadmap};
 function renderCurrent(){
- var subnav='<div class="ct-subnav">'+SUBNAV.map(function(s){return '<button class="'+(cur===s[0]?'on':'')+'" onclick="CTW.go(\''+s[0]+'\')">'+s[1]+'</button>';}).join('')+'</div>';
+ var AREAS=[['Overview',['overview','scenarios','demo']],['Customer & Market',['companies','companyNew','personas','wizard','designmap','market','time','journey']],['Simulation',['simulation','ringi','budget','strategy']],['Research & Build',['interview','analysis','agents','dev']],['Performance & Learning',['exec','funnel','compare','audit','history']],['設定',['roadmap']]];
+ var placed={};AREAS.forEach(function(a){a[1].forEach(function(k){placed[k]=1;});});SUBNAV.forEach(function(x){if(!placed[x[0]]){AREAS[0][1].push(x[0]);placed[x[0]]=1;}});
+ function lbl(k){var f=SUBNAV.filter(function(x){return x[0]===k;})[0];return f?f[1]:k;}
+ var subnav='<div class="ct-subnav" style="flex-direction:column;align-items:stretch;gap:6px">'+AREAS.map(function(a){var keys=a[1].filter(function(k){return SUBNAV.some(function(x){return x[0]===k;});});if(!keys.length)return '';return '<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center"><span style="font-size:10px;font-weight:800;letter-spacing:.5px;color:#64768b;min-width:150px">'+a[0]+'</span>'+keys.map(function(k){return '<button class="'+(cur===k?'on':'')+'" onclick="CTW.go(\''+k+'\')">'+lbl(k)+'</button>';}).join('')+'</div>';}).join('')+'</div>';
  var body=(VIEWS[cur]||vOverview)();
  return subnav+'<div id="ctwMain">'+body+'</div><div class="ct-drawer-bg" onclick="CTW.closeDrawer()"></div><div class="ct-drawer" id="ctwDrawer"></div>';
 }
@@ -418,6 +423,7 @@ return {
  shell:shell, renderCurrent:renderCurrent,
  extend:function(key,label,fn,afterKey){VIEWS[key]=fn;var idx=SUBNAV.length;if(afterKey){for(var i=0;i<SUBNAV.length;i++){if(SUBNAV[i][0]===afterKey){idx=i+1;break;}}}SUBNAV.splice(idx,0,[key,label]);},
  gotoKey:function(k){cur=k;go(k);},
+ openTwin:function(k){if(window.go)window.go('twin');setTimeout(function(){cur=k;var r=document.getElementById('ctwRoot');if(r)r.innerHTML=renderCurrent();window.scrollTo(0,0);},40);},
  _helpers:{esc:esc,badge:badge,card:card,load:load,save:save,uid:uid,nowISO:nowISO,P:P,GROUPS:GROUPS,groupName:groupName,groupCls:groupCls,DXC:DXC},
  go:go,
  setPF:function(k,v){pFilter[k]=v;rerenderMain();},
@@ -440,7 +446,7 @@ return {
  openRun:function(id){var run=load('run_'+id,null);if(run){save('lastRun',run);cur='simulation';go('simulation');}},
  clearRuns:function(){save('runs',[]);rerenderMain();},
  /* 既存画面からの引き継ぎ：{theme,angle,cat} */
- homeBanner:function(){return '<div class="card" style="border-left:4px solid #137e73;background:linear-gradient(135deg,#f3fbf9,#ffffff)"><div class="card-b" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><div><div style="font-size:11px;letter-spacing:1.5px;font-weight:800;color:#137e73">NEW / CUSTOMER & MARKET TWIN</div><div style="font-weight:800;color:#14253b;font-size:15px">施策を実行する前に、仮想顧客の反応を試す</div><div style="font-size:12px;color:#64768b">物流36ペルソナ・仮想企業・市場シミュレーション（コンセプト試作・架空データ）</div></div><button onclick="go(\'twin\')" style="border:0;background:#137e73;color:#fff;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer">Customer Twin を開く →</button></div></div>';},
+ homeBanner:function(){return '<div class="card" style="border-left:4px solid #137e73;background:linear-gradient(135deg,#f3fbf9,#ffffff)"><div class="card-b" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><div><div style="font-size:11px;letter-spacing:1.5px;font-weight:800;color:#137e73">NEW / CUSTOMER & MARKET TWIN</div><div style="font-weight:800;color:#14253b;font-size:15px">施策を実行する前に、仮想顧客の反応を試す</div><div style="font-size:12px;color:#64768b">物流36ペルソナ・仮想企業・市場シミュレーション（コンセプト試作・架空データ）</div></div><button onclick="go(\'twin\')" style="border:0;background:#137e73;color:#fff;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer">Customer Twin を開く →</button></div></div>'+'<div class="card" style="margin-top:-6px"><div class="card-b"><div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#64768b;margin-bottom:8px">何をしたいですか？（目的別入口）</div><div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">'+[['戦略室','市場変化・新規事業・投資比較','strategy'],['事業開発','新機能・新サービス・価格検証','simulation'],['マーケ','LP/メルマガ/予算配分の検証','budget'],['営業','仮想企業への提案・稟議','ringi'],['顧客理解','仮想顧客・ジャーニー・生成','journey'],['市場','時間を進めて変化を見る','time'],['制作','要件から制作エージェント','agents'],['デモ','ガイド付きデモ','demo']].map(function(x){return '<button onclick="CTW.openTwin(\''+x[2]+'\')" style="text-align:left;border:1px solid #e0e6ed;background:#fff;border-radius:9px;padding:10px;cursor:pointer"><div style="font-weight:800;color:#14253b;font-size:13px">'+x[0]+'</div><div style="font-size:11px;color:#64768b;margin-top:2px">'+x[1]+'</div></button>';}).join('')+'</div></div></div>';},
  verifyFrom:function(ctx){ctx=ctx||{};if(ctx.theme)sim.theme=ctx.theme;if(ctx.angle)sim.angle=ctx.angle;if(ctx.cat)sim.cat=ctx.cat;if(typeof go==='function'){if(window.go)window.go('twin');}cur='simulation';setTimeout(function(){var r=document.getElementById('ctwRoot');if(r)r.innerHTML=renderCurrent();},30);}
 };
 })();

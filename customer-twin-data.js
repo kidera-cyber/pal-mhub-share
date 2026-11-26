@@ -5,7 +5,7 @@
    ============================================================ */
 window.CTWDB=(function(){
 "use strict";
-var KEY='pal_mhub_twin_v1_db';var SCHEMA=3;
+var KEY='pal_mhub_twin_v1_db';var SCHEMA=4;
 /* mulberry32 seeded RNG */
 function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
 function pick(r,arr){return arr[Math.floor(r()*arr.length)];}
@@ -55,7 +55,7 @@ function gen(){
  var r=rng(20261126);
  var db={schema:SCHEMA,generatedAt:new Date().toISOString(),demo:true,
   companies:[],contacts:[],sites:[],products:PRODUCTS,campaigns:[],leads:[],opportunities:[],
-  projects:[],runs:[],interviews:[],discussions:[],calibrations:[],events:[],
+  projects:[],runs:[],interviews:[],discussions:[],calibrations:[],events:[],virtualCustomers:[],snapshots:[],clock:'2026-11-01',
   assumptions:{cpc:{Google広告:220,'Microsoft広告':180,'その他広告':260,SNS:120,'YouTube・動画':90},cvr:0.021,leadRate:0.62,mqlRate:0.4,dealRate:0.35,winRate:0.3,avgDeal:2800000,roiBasis:'売上ベース'}};
 
  /* 企業 + 担当者 + 拠点 */
@@ -131,6 +131,58 @@ return {db:db,reset:reset,save:save,gen:gen,
  oppsOf:function(cid){return db().opportunities.filter(function(x){return !cid||x.companyId===cid;});},
  leadsOf:function(cid){return db().leads.filter(function(x){return !cid||x.companyId===cid;});},
  products:function(){return db().products;},company:function(cid){return db().companies.filter(function(x){return x.id===cid;})[0];},
+
+ /* --- クロック（仮想時間） --- */
+ clock:function(){return db().clock;},
+ setClock:function(iso){db().clock=iso;save();},
+ advance:function(days){var d=db();var dt=new Date(d.clock+'T00:00:00');dt.setDate(dt.getDate()+days);var newIso=dt.toISOString().slice(0,10);d.clock=newIso;
+  var log=[];var seed=0;for(var i=0;i<newIso.length;i++)seed+=newIso.charCodeAt(i);var rr=rng(seed*7+days);
+  var mo=dt.getMonth()+1;
+  d.companies.forEach(function(c){
+   var ev=null;
+   if(mo===c.closeMonth)ev='決算：コスト圧力が高まる';
+   else if(mo===c.budgetMonth)ev='予算策定：DX投資の検討が進む';
+   else if((mo===11||mo===12)&&(c.industry.indexOf('食品')>=0||c.industry.indexOf('EC')>=0))ev='年末繁忙期：物量増・人手不足が深刻化';
+   else if(c.contractRenew.slice(0,7)===newIso.slice(0,7))ev='既存契約の更新時期：乗り換え検討';
+   if(ev){
+    var before={stage:c.stage,remain:c.budgetRemain};
+    if(ev.indexOf('繁忙')>=0){c.fieldIssue='人手不足・物量増';}
+    if(ev.indexOf('予算')>=0&&['認知','情報収集','課題認識'].indexOf(c.stage)>=0){var order=['未認知','認知','情報収集','課題認識','比較検討','商談','稟議','導入','継続利用'];var ix=order.indexOf(c.stage);c.stage=order[Math.min(ix+1,8)];}
+    if(ev.indexOf('決算')>=0){c.budgetRemain=Math.max(0,Math.round(c.budgetRemain*0.6*10)/10);}
+    var entry={id:id('EV',d.events.length+1),demo:true,at:newIso,companyId:c.id,event:ev,before:before,after:{stage:c.stage,remain:c.budgetRemain}};
+    d.events.push(entry);log.push(entry);
+   }
+  });
+  d.snapshots.push({id:id('SNP',d.snapshots.length+1),at:newIso,companies:d.companies.map(function(c){return {id:c.id,stage:c.stage,remain:c.budgetRemain,fieldIssue:c.fieldIssue};})});
+  save();return {date:newIso,log:log};},
+ eventsAll:function(){return db().events;},
+ eventsOf:function(cid){return db().events.filter(function(e){return !cid||e.companyId===cid;});},
+ snapshots:function(){return db().snapshots;},
+ /* --- 企業・顧客の生成 --- */
+ addCompany:function(obj){var d=db();var n=d.companies.length+1;var cid='DEMO-'+String(n).padStart(2,'0');var c=Object.assign({id:cid,demo:true,generated:true,employees:1000,sites:3,siteTypes:['通過型センター(TC)'],cargo:'加工食品(常温)',tier:'元請',logiCost:10,itBudget:5,dxBudget:3,budgetSpent:1,budgetRemain:2,dxLevel:2,systems:['Excel配車'],fieldIssue:'現場負荷',peak:'年末',closeMonth:3,budgetMonth:1,competitor:'現状維持',contractRenew:'2027-06',stage:'認知',interest:'Core Time',updatedAt:new Date().toISOString()},obj);c.id=cid;d.companies.push(c);
+  /* 自動組織生成 */
+  ROLES.forEach(function(role,k){d.contacts.push({id:id('CTN'+n,k+1),demo:true,generated:true,companyId:cid,role:role,name:pname(rng(n*13+k)),concern:ROLE_CONCERN[role],evalBy:ROLE_CONCERN[role].split('・')[0],decision:ROLE_DECIS[role],influence:pick(rng(n*5+k),['高','中','低']),dx:pick(rng(n*3+k),DXSTANCE),interest:c.interest,opinion:'保留'});});
+  for(var si=0;si<(c.sites||2);si++){d.sites.push({id:id('STN'+n,si+1),demo:true,generated:true,companyId:cid,type:pick(rng(n*7+si),SITE_TYPES),region:'首都圏',scale:'中'});}
+  save();return c;},
+ addCustomer:function(obj){var d=db();var n=d.virtualCustomers.length+1;var vc=Object.assign({id:id('VC',n),demo:true,generated:true,group:'kanri',dx:'前向き',decision:'中',concern:'現場負荷',setting:'',companyId:'',stage:'認知',price:50,interest:60,barrier:55,createdAt:new Date().toISOString()},obj);d.virtualCustomers.push(vc);save();return vc;},
+ virtualCustomers:function(){return db().virtualCustomers;},
+ removeCustomer:function(id){var d=db();d.virtualCustomers=d.virtualCustomers.filter(function(x){return x.id!==id;});save();},
+ addEvent:function(ev){var d=db();ev.id=id('EV',d.events.length+1);ev.demo=true;if(!ev.at)ev.at=d.clock;d.events.push(ev);save();return ev;},
+ addLead:function(obj){var d=db();var n=d.leads.length+1;var l=Object.assign({id:id('LD',n),demo:true,generated:true,at:d.clock},obj);d.leads.push(l);save();return l;},
+ addOpp:function(obj){var d=db();var n=d.opportunities.length+1;var o=Object.assign({id:id('OPP',n),demo:true,generated:true,at:d.clock},obj);d.opportunities.push(o);save();return o;},
+ addCampaign:function(obj){var d=db();var n=d.campaigns.length+1;var c=Object.assign({id:id('CMP',n),demo:true,generated:true,date:d.clock,monthsAgo:0},obj);d.campaigns.push(c);save();return c;},
+ importDB:function(json){try{var d=JSON.parse(json);if(d&&d.companies){_db=d;save();return true;}}catch(e){}return false;},
+ /* --- 整合性監査 --- */
+ audit:function(){var d=db();var issues=[];var coIds={};d.companies.forEach(function(c){coIds[c.id]=1;});
+  d.contacts.forEach(function(ct){if(!coIds[ct.companyId])issues.push('担当者 '+ct.id+' の所属企業 '+ct.companyId+' が存在しない');});
+  d.sites.forEach(function(s){if(!coIds[s.companyId])issues.push('拠点 '+s.id+' の所属企業が存在しない');});
+  d.leads.forEach(function(l){if(l.companyId&&!coIds[l.companyId])issues.push('リード '+l.id+' の企業参照不正');});
+  d.opportunities.forEach(function(o){if(!coIds[o.companyId])issues.push('商談 '+o.id+' の企業参照不正');});
+  var prodNames={};d.products.forEach(function(p){prodNames[p.name]=1;});
+  d.opportunities.forEach(function(o){if(!prodNames[o.product])issues.push('商談 '+o.id+' の商材 '+o.product+' がマスタに無い');});
+  var wins=d.opportunities.filter(function(o){return o.stage==='導入'||o.stage==='継続利用';});
+  var salesSum=wins.reduce(function(s,o){return s+o.amount;},0);
+  return {ok:issues.length===0,issues:issues,checks:{companies:d.companies.length,contacts:d.contacts.length,contactsPerCo:Math.round(d.contacts.length/d.companies.length*10)/10,sites:d.sites.length,leadsLinked:d.leads.filter(function(l){return coIds[l.companyId];}).length,opps:d.opportunities.length,wins:wins.length,winSales:salesSum,events:d.events.length}};},
  counts:function(){var d=db();return {companies:d.companies.length,contacts:d.contacts.length,sites:d.sites.length,campaigns:d.campaigns.length,leads:d.leads.length,opps:d.opportunities.length,projects:d.projects.length,runs:d.runs.length,interviews:d.interviews.length,discussions:d.discussions.length,calibrations:d.calibrations.length,products:d.products.length};}
 };
 })();
