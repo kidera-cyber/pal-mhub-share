@@ -100,7 +100,7 @@ function vJourney(){
  var c=all.filter(function(x){return x.id===jSel;})[0];
  var picker='<label class="ct-field">仮想顧客を選択</label><select onchange="CTWENG.setJ(this.value)" style="max-width:420px"><optgroup label="企業所属（72名）">'+conts.slice(0,72).map(function(x){var co=DB.company(x.companyId);return '<option value="'+x.id+'"'+(jSel===x.id?' selected':'')+'>'+esc(x.name)+'（'+esc(x.role)+'・'+esc(co?co.name:'')+'）</option>';}).join('')+'</optgroup>'+(vcs.length?'<optgroup label="生成">'+vcs.map(function(v){return '<option value="'+v.id+'"'+(jSel===v.id?' selected':'')+'>'+esc(v.name)+'（生成）</option>';}).join('')+'</optgroup>':'')+'</select>';
  if(!c)return '<div class="ct-sech">顧客ジャーニー</div>'+card(picker+'<p class="ct-muted">顧客を選択してください。</p>');
- var evs=load('pal_mhub_twin_v1_cust_events_'+c.id,[]);
+ var evs=load('cust_events_'+c.id,[]);
  var co=DB.company(c.companyId);
  var mem=memState(c,evs);
  var prof=card('<div class="ct-persona"><div class="ct-av">'+(c.generated?'★':(c.name||'？').slice(0,1))+'</div><div><h3 style="margin:0">'+esc(c.name)+'</h3><div>'+badge(esc(c.role||'生成顧客'),'b-teal')+' '+badge(c.dx,H.DXC[c.dx]||'b-grey')+'</div></div></div><div class="ct-lab" style="margin-top:8px">所属</div><div style="font-size:12.5px">'+esc(co?co.name:'未所属')+'</div><div class="ct-lab" style="margin-top:6px">主要課題</div><div style="font-size:12.5px">'+esc(c.concern)+'</div>'+
@@ -128,7 +128,7 @@ function memState(c,evs){
 var ex={channel:'メルマガ',product:'Core Time',companyId:'',angle:'勤怠・工数管理',budget:500000};
 function vExec(){
  var cos=DB.companies();if(!ex.companyId)ex.companyId='all';
- var last=load('pal_mhub_twin_v1_exec_last',null);
+ var last=load('exec_last',null);
  var form=card('<h3>模擬実行の設定</h3><div class="ct-grid g3">'+
   '<div><label class="ct-field">施策</label><select onchange="CTWENG.ex(\'channel\',this.value)">'+['Google広告','Microsoft広告','LP','メルマガ','SNS','YouTube','コラム','DL資料','セミナー','営業提案'].map(function(c){return '<option'+(ex.channel===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>'+
   '<div><label class="ct-field">商材</label><select onchange="CTWENG.ex(\'product\',this.value)">'+DB.products().map(function(p){return '<option'+(ex.product===p.name?' selected':'')+'>'+esc(p.name)+'</option>';}).join('')+'</select></div>'+
@@ -176,9 +176,9 @@ window.CTWENG={
  advance:function(days){var r=DB.advance(days);rerun();},
  resetClock:function(){DB.setClock('2026-11-01');rerun();},
  setJ:function(id){jSel=id;rerun();},
- custEvent:function(cid,type){var evs=load('pal_mhub_twin_v1_cust_events_'+cid,[]);evs.push({at:DB.clock()+' '+new Date().toTimeString().slice(0,5),type:type,product:ex.product});save('pal_mhub_twin_v1_cust_events_'+cid,evs);DB.addEvent({companyId:'',customerId:cid,event:'接触:'+type});rerun();},
+ custEvent:function(cid,type){var evs=load('cust_events_'+cid,[]);evs.push({at:DB.clock()+' '+new Date().toTimeString().slice(0,5),type:type,product:ex.product});save('cust_events_'+cid,evs);DB.addEvent({companyId:'',customerId:cid,event:'接触:'+type});rerun();},
  ex:function(k,v){ex[k]=v;},
- runExec:function(){var res=simulateExec();save('pal_mhub_twin_v1_exec_last',res);var el=document.getElementById('ctwExecOut');if(el)el.innerHTML=renderExecResult(res);}
+ runExec:function(){var res=simulateExec();save('exec_last',res);var el=document.getElementById('ctwExecOut');if(el)el.innerHTML=renderExecResult(res);}
 };
 
 function simulateExec(){
@@ -196,11 +196,11 @@ function simulateExec(){
  targets.forEach(function(ct){
   var p=0.25+(fit.indexOf(ct.dx)>=0?0.4:0)+(ct.interest===ex.product?0.2:0);
   var r=((ct.id.charCodeAt(ct.id.length-1)+clock.charCodeAt(9))%100)/100;
-  if(r<p){unique++;var evlist=load('pal_mhub_twin_v1_cust_events_'+ct.id,[]);
+  if(r<p){unique++;var evlist=load('cust_events_'+ct.id,[]);
    var chain=ex.channel==='メルマガ'?['メルマガ開封','CTAクリック','LP閲覧','資料DL']:isAd?['広告接触','LP閲覧','資料DL']:['LP閲覧','資料DL'];
    var depth=Math.ceil((p)*chain.length);
    for(var i=0;i<depth;i++){evlist.push({at:clock,type:chain[i],product:ex.product,campaign:ex.channel});touches++;events++;}
-   save('pal_mhub_twin_v1_cust_events_'+ct.id,evlist);
+   save('cust_events_'+ct.id,evlist);
    if(depth>=3){addedLeads++;DB.addLead({companyId:ct.companyId,contactId:ct.id,source:ex.channel,product:ex.product,stage:'MQL',score:60+Math.round(p*30)});}
    if(r<p*0.25){addedOpps++;DB.addOpp({companyId:ct.companyId,product:ex.product,amount:a.avgDeal,stage:'商談',probability:30});}
   }

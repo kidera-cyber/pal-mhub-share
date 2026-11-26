@@ -172,9 +172,9 @@ function vCompare(){
  var diff=function(a,b){return (b-a>=0?'+':'')+(b-a);};
  var rows=[['CV',pred.cv,act.cv],['商談',pred.deal,act.deal],['受注',pred.win,act.win]];
  var tbl='<div class="ct-tblwrap"><table class="ct-tbl"><thead><tr><th>指標</th><th>施策前 予測</th><th>模擬実績</th><th>差分</th><th>判定</th></tr></thead><tbody>'+rows.map(function(x){var d=x[2]-x[1];return '<tr><td>'+x[0]+'</td><td>'+x[1]+'件</td><td>'+x[2]+'件</td><td>'+diff(x[1],x[2])+'件</td><td>'+badge(Math.abs(d)<=1?'ほぼ一致':d<0?'過大予測':'過小予測',Math.abs(d)<=1?'b-green':'b-amber')+'</td></tr>';}).join('')+'</tbody></table></div>';
- var cal=load('pal_mhub_twin_v1_calib_live',{price:50,interest:60,barrier:55});
+ var cal=load('calib_live',{price:50,interest:60,barrier:55});
  var sliders=['price','interest','barrier'].map(function(k){var lab={price:'価格感度',interest:'購買関心',barrier:'導入障壁'}[k];return '<div><label class="ct-field">'+lab+' ('+cal[k]+')</label><input type="range" min="0" max="100" value="'+cal[k]+'" style="width:100%" oninput="CTWPRO.setCal(\''+k+'\',this.value)"></div>';}).join('');
- var vers=load('pal_mhub_twin_v1_calib_versions',[]);
+ var vers=load('calib_versions',[]);
  return '<div class="ct-sech">仮想実績との比較・モデル補正</div>'+
   card('<h3>予測 vs 模擬実績（デモ例）</h3>'+tbl+'<p class="ct-lab">※予測時の設定と模擬市場側の行動条件は分離。同一式での自己評価はしていません。</p>')+
   '<div class="ct-sech">モデル補正</div>'+card('<p class="ct-muted" style="margin-top:0">仮説と実績の差から係数を補正します。補正理由・対象・変更・承認者・日時・バージョンを保存。</p><div class="ct-grid g3">'+sliders+'</div><div style="margin-top:12px"><button class="ct-btn sm" onclick="CTWPRO.saveCal()">補正を保存（バージョン発行）</button> <button class="ct-btn sm sec" onclick="CTW.gotoKey(\'simulation\')">補正後に再シミュレーション →</button></div>')+
@@ -186,7 +186,7 @@ function vCompare(){
 var AGENTS=['市場分析','顧客分析','ペルソナ生成','インタビュー','討議司会','プロダクト企画','サービス開発','LP制作','メルマガ制作','SNS制作','コラム制作','資料制作','営業提案','予算分析','開発','品質検証'];
 var agentSel='LP制作';var agentInput='Core Time / 食品物流センター長向け';
 function vAgents(){
- var out=load('pal_mhub_twin_v1_artifact','');
+ var out=load('artifact','');
  var list='<div style="display:flex;gap:6px;flex-wrap:wrap">'+AGENTS.map(function(a){return '<button class="ct-btn sm '+(agentSel===a?'':'sec')+'" onclick="CTWPRO.setAgent(\''+a+'\')">'+esc(a)+'</button>';}).join('')+'</div>';
  return '<div class="ct-sech">開発・制作エージェント 模擬実行 <span class="ct-muted" style="font-size:12px;font-weight:400">16種・ルールベース模擬生成</span></div>'+
   card('<label class="ct-field">エージェントを選択</label>'+list+'<label class="ct-field">入力（商材 / 対象）</label><input type="text" value="'+esc(agentInput)+'" oninput="CTWPRO.setAgentInput(this.value)"><div style="margin-top:10px"><button class="ct-btn" onclick="CTWPRO.runAgent()">'+esc(agentSel)+'エージェントを模擬実行 →</button></div>')+
@@ -256,11 +256,11 @@ window.CTWPRO={
  loadBudget:function(k){budget.alloc=Object.assign({},PRESETS_B[k]);rerun();},
  setAssume:function(k,v){budget.assume[k]=+v||0;rerun();},
  setFF:function(k,v){funnelFilter[k]=v;if(k==='by')funnelFilter.val='all';rerun();},
- setCal:function(k,v){var cal=load('pal_mhub_twin_v1_calib_live',{price:50,interest:60,barrier:55});cal[k]=+v;save('pal_mhub_twin_v1_calib_live',cal);},
- saveCal:function(){var cal=load('pal_mhub_twin_v1_calib_live',{price:50,interest:60,barrier:55});var vs=load('pal_mhub_twin_v1_calib_versions',[]);vs.unshift({version:vs.length+1,at:nowISO(),price:cal.price,interest:cal.interest,barrier:cal.barrier,by:'PAL マーケ'});save('pal_mhub_twin_v1_calib_versions',vs);rerun();},
+ setCal:function(k,v){var cal=load('calib_live',{price:50,interest:60,barrier:55});cal[k]=+v;save('calib_live',cal);},
+ saveCal:function(){var cal=load('calib_live',{price:50,interest:60,barrier:55});var vs=load('calib_versions',[]);vs.unshift({version:vs.length+1,at:nowISO(),price:cal.price,interest:cal.interest,barrier:cal.barrier,by:'PAL マーケ'});save('calib_versions',vs);rerun();},
  setAgent:function(a){agentSel=a;rerun();},
  setAgentInput:function(v){agentInput=v;},
- runAgent:function(){var out=genArtifact();save('pal_mhub_twin_v1_artifact',out);rerun();},
+ runAgent:function(){var out=genArtifact();save('artifact',out);rerun();},
  exportArtifact:function(){var ta=document.getElementById('ctwArtifact');var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ta?ta.value:''],{type:'text/markdown;charset=utf-8'}));a.download='ctw-artifact.md';a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},800);},
  runScenario:function(i){try{SCENARIOS[i][3]();}catch(e){console.warn(e);}},
  resetDemo:function(){try{window.CTWDB.reset();['runs','requirements','lastRun','personas_registered','calib_versions','calib_live','artifact','devGate','devVersion'].forEach(function(k){localStorage.removeItem('pal_mhub_twin_v1_'+k);});}catch(e){}coSel=null;CTW.gotoKey('demo');},
