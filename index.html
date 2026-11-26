@@ -1493,6 +1493,8 @@ tr:hover td{background:#fbfcfe}
 <button type="button" class="mhub-bot-toggle is-hidden" id="aiToggleBtn">🧙 PAL賢者に相談</button>
 
 <script src="customer-twin.js"></script>
+<script src="customer-twin-data.js"></script>
+<script src="customer-twin-pro.js"></script>
 <script>
 /* ============================================================
    ===== PAL-MHub データモデル（MOCK + LocalStorage）=====
@@ -8415,10 +8417,10 @@ function productView(){
 
 /* ===== 商品別パフォーマンス管理 v1 END ===== */
 
-const VIEWS={twin:function(){return (window.CTW?CTW.shell():'<div class="card"><div class="card-b">Customer Twin 読込中…</div></div>');},home:function(){return (window.CTW&&CTW.homeBanner?CTW.homeBanner():'')+homeView();},product:productView,ga4:ga4View,lp:lpView,column:columnView,video:videoView,sns:snsView,
-  mail:mailView,dl:dlView,lead:leadView,calendar:calendarView,approval:approvalView,
+const VIEWS={twin:function(){return (window.CTW?CTW.shell():'<div class="card"><div class="card-b">Customer Twin 読込中…</div></div>');},home:function(){return (window.CTW&&CTW.homeBanner?CTW.homeBanner():'')+homeView();},product:function(){return (window.ctwVerifyBar?window.ctwVerifyBar({theme:'商品別の商材検証',angle:'費用対効果・人件費',cat:'PRODUCT'}):'')+productView();},ga4:ga4View,lp:function(){return (window.ctwVerifyBar?window.ctwVerifyBar({theme:'LP構成・CTA検証',angle:'導入の手軽さ(工事不要)',cat:'MARKETING'}):'')+lpView();},column:function(){return (window.ctwVerifyBar?window.ctwVerifyBar({theme:'コラムのテーマ・検索意図検証',angle:'システム連携',cat:'MARKETING'}):'')+columnView();},video:videoView,sns:snsView,
+  mail:function(){return (window.ctwVerifyBar?window.ctwVerifyBar({theme:'メルマガ件名・配信時期検証',angle:'勤怠・工数管理',cat:'MARKETING'}):'')+mailView();},dl:dlView,lead:leadView,calendar:calendarView,approval:approvalView,
   todo:todoView,agent:agentView,prompt:promptView,settings:settingsView,
-  report:function(){return renderReportCsvSection()+reportView();},adbudget:adBudgetView,plan3y:plan3yView};
+  report:function(){return renderReportCsvSection()+reportView();},adbudget:function(){return (window.ctwVerifyBar?window.ctwVerifyBar({theme:'広告予算配分の検証',angle:'費用対効果・人件費',cat:'BUDGET'}):'')+adBudgetView();},plan3y:plan3yView};
 function renderMain(){document.getElementById('main').innerHTML=(VIEWS[current]||homeView)();}
 function render(){buildNav();renderTop();renderMain();renderAI();}
 

@@ -406,7 +406,7 @@ function renderCurrent(){
  return subnav+'<div id="ctwMain">'+body+'</div><div class="ct-drawer-bg" onclick="CTW.closeDrawer()"></div><div class="ct-drawer" id="ctwDrawer"></div>';
 }
 function shell(){
- return '<div class="section-title" style="font-size:16px">🧪 Customer Twin <span class="ct-demo-ribbon">コンセプト試作・架空データ</span></div><div id="ctwRoot">'+renderCurrent()+'</div>';
+ return '<div class="section-title" style="font-size:16px">🧪 Customer Twin <span class="ct-demo-ribbon">DEMO MODE / 仮想データ環境（架空）</span></div><div id="ctwRoot">'+renderCurrent()+'</div>';
 }
 function rerenderMain(){var el=document.getElementById('ctwMain');if(el){el.innerHTML=(VIEWS[cur]||vOverview)();}else{var r=document.getElementById('ctwRoot');if(r)r.innerHTML=renderCurrent();}
  /* update subnav active */
@@ -416,6 +416,9 @@ function go(sub){cur=sub;var r=document.getElementById('ctwRoot');if(r){r.innerH
 /* ---------- 公開API（既存M-HUBから呼ぶ / 本モジュール内onclick） ---------- */
 return {
  shell:shell, renderCurrent:renderCurrent,
+ extend:function(key,label,fn,afterKey){VIEWS[key]=fn;var idx=SUBNAV.length;if(afterKey){for(var i=0;i<SUBNAV.length;i++){if(SUBNAV[i][0]===afterKey){idx=i+1;break;}}}SUBNAV.splice(idx,0,[key,label]);},
+ gotoKey:function(k){cur=k;go(k);},
+ _helpers:{esc:esc,badge:badge,card:card,load:load,save:save,uid:uid,nowISO:nowISO,P:P,GROUPS:GROUPS,groupName:groupName,groupCls:groupCls,DXC:DXC},
  go:go,
  setPF:function(k,v){pFilter[k]=v;rerenderMain();},
  persona:function(id){drwTab='base';var d=document.getElementById('ctwDrawer');if(d){d.innerHTML=personaDrawer(id);document.getElementById('ctwRoot').classList.add('ct-open');}},
