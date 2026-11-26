@@ -1447,6 +1447,7 @@ tr:hover td{background:#fbfcfe}
 .p3-exec .p3-exec-divider{text-align:center;color:#94a3b8;font-size:12px;font-weight:800;margin:22px 0 4px;padding-top:14px;border-top:2px dashed #cbd5e1}
 /* ===== 中長期計画 経営サマリー v1 CSS END ===== */
 </style>
+<link rel="stylesheet" href="customer-twin.css">
 </head>
 <body>
 
@@ -1491,6 +1492,7 @@ tr:hover td{background:#fbfcfe}
 <!-- ===== AI bot 非表示時のフローティング起動ボタン v1 ===== -->
 <button type="button" class="mhub-bot-toggle is-hidden" id="aiToggleBtn">🧙 PAL賢者に相談</button>
 
+<script src="customer-twin.js"></script>
 <script>
 /* ============================================================
    ===== PAL-MHub データモデル（MOCK + LocalStorage）=====
@@ -2641,6 +2643,7 @@ const CAL_EVENTS={ // day -> events
 const TABS=[
   {id:'home',ic:'🏠',label:'ホーム'},
   {id:'product',ic:'📦',label:'商品別'},
+  {id:'twin',ic:'🧪',label:'Customer Twin'},
   {id:'ga4',ic:'📊',label:'GA4分析'},
   {id:'lp',ic:'🖥️',label:'LP管理'},
   {id:'column',ic:'✍️',label:'コラム管理'},
@@ -8412,7 +8415,7 @@ function productView(){
 
 /* ===== 商品別パフォーマンス管理 v1 END ===== */
 
-const VIEWS={home:homeView,product:productView,ga4:ga4View,lp:lpView,column:columnView,video:videoView,sns:snsView,
+const VIEWS={twin:function(){return (window.CTW?CTW.shell():'<div class="card"><div class="card-b">Customer Twin 読込中…</div></div>');},home:function(){return (window.CTW&&CTW.homeBanner?CTW.homeBanner():'')+homeView();},product:productView,ga4:ga4View,lp:lpView,column:columnView,video:videoView,sns:snsView,
   mail:mailView,dl:dlView,lead:leadView,calendar:calendarView,approval:approvalView,
   todo:todoView,agent:agentView,prompt:promptView,settings:settingsView,
   report:function(){return renderReportCsvSection()+reportView();},adbudget:adBudgetView,plan3y:plan3yView};
