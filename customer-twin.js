@@ -422,8 +422,11 @@ function go(sub){cur=sub;var r=document.getElementById('ctwRoot');if(r){r.innerH
 return {
  shell:shell, renderCurrent:renderCurrent,
  extend:function(key,label,fn,afterKey){var existed=VIEWS[key]!=null;VIEWS[key]=fn;if(existed)return;var idx=SUBNAV.length;if(afterKey){for(var i=0;i<SUBNAV.length;i++){if(SUBNAV[i][0]===afterKey){idx=i+1;break;}}}SUBNAV.splice(idx,0,[key,label]);},
- gotoKey:function(k){cur=k;go(k);},
- openTwin:function(k){if(window.go)window.go('twin');setTimeout(function(){cur=k;var r=document.getElementById('ctwRoot');if(r)r.innerHTML=renderCurrent();window.scrollTo(0,0);},40);},
+ gotoKey:function(k){if(window.go){window.go(k);}else{cur=k;go(k);}},
+ openTwin:function(k){if(window.go)window.go(k);},
+ screenKeys:function(){return Object.keys(VIEWS);},
+ screenLabel:function(k){var f=SUBNAV.filter(function(x){return x[0]===k;})[0];return f?f[1]:k;},
+ renderStandalone:function(k){cur=k;var fn=VIEWS[k]||vOverview;window.__ctwView=fn;return '<div id="ctwRoot"><div id="ctwMain">'+fn()+'</div><div class="ct-drawer-bg" onclick="CTW.closeDrawer()"></div><div class="ct-drawer" id="ctwDrawer"></div></div>';},
  _helpers:{esc:esc,badge:badge,card:card,load:load,save:save,uid:uid,nowISO:nowISO,P:P,GROUPS:GROUPS,groupName:groupName,groupCls:groupCls,DXC:DXC},
  go:go,
  setPF:function(k,v){pFilter[k]=v;rerenderMain();},
@@ -446,7 +449,33 @@ return {
  openRun:function(id){var run=load('run_'+id,null);if(run){save('lastRun',run);cur='simulation';go('simulation');}},
  clearRuns:function(){save('runs',[]);rerenderMain();},
  /* 既存画面からの引き継ぎ：{theme,angle,cat} */
- homeBanner:function(){return '<div class="card" style="border-left:4px solid #137e73;background:linear-gradient(135deg,#f3fbf9,#ffffff)"><div class="card-b" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><div><div style="font-size:11px;letter-spacing:1.5px;font-weight:800;color:#137e73">NEW / CUSTOMER & MARKET TWIN</div><div style="font-weight:800;color:#14253b;font-size:15px">施策を実行する前に、仮想顧客の反応を試す</div><div style="font-size:12px;color:#64768b">物流36ペルソナ・仮想企業・市場シミュレーション（コンセプト試作・架空データ）</div></div><button onclick="go(\'twin\')" style="border:0;background:#137e73;color:#fff;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer">Customer Twin を開く →</button></div></div>'+'<div class="card" style="margin-top:-6px"><div class="card-b"><div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#64768b;margin-bottom:8px">何をしたいですか？（目的別入口）</div><div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">'+[['プレゼン','5分で経営層向けデモ','present'],['戦略室','市場変化・新規事業・投資比較','strategy'],['事業開発','新機能・新サービス・価格検証','simulation'],['マーケ','LP/メルマガ/予算配分の検証','budget'],['営業','仮想企業への提案・稟議','ringi'],['顧客理解','仮想顧客・ジャーニー・生成','journey'],['市場','時間を進めて変化を見る','time'],['制作','要件から制作エージェント','agents'],['デモ','ガイド付きデモ','demo']].map(function(x){return '<button onclick="CTW.openTwin(\''+x[2]+'\')" style="text-align:left;border:1px solid #e0e6ed;background:#fff;border-radius:9px;padding:10px;cursor:pointer"><div style="font-weight:800;color:#14253b;font-size:13px">'+x[0]+'</div><div style="font-size:11px;color:#64768b;margin-top:2px">'+x[1]+'</div></button>';}).join('')+'</div></div></div>';},
- verifyFrom:function(ctx){ctx=ctx||{};if(ctx.theme)sim.theme=ctx.theme;if(ctx.angle)sim.angle=ctx.angle;if(ctx.cat)sim.cat=ctx.cat;if(typeof go==='function'){if(window.go)window.go('twin');}cur='simulation';setTimeout(function(){var r=document.getElementById('ctwRoot');if(r)r.innerHTML=renderCurrent();},30);}
+ homeBanner:function(){
+ var DB=window.CTWDB;var C=DB?DB.counts():{};var clock=DB?DB.clock():'';
+ var goals=[
+  ['顧客や市場を知りたい','仮想企業・顧客・市場の状況を見る','companies','#0f6b61','#e3f6ec'],
+  ['新しい商材・サービスを試したい','施策検証で立場別の反応を比較','simulation','#137e73','#dcf2ee'],
+  ['LP・メルマガ・広告を改善したい','既存施策を仮想顧客で事前検証','mail','#b96a12','#faf0d3'],
+  ['顧客の意見を聞きたい','1on1・グループ討議で論点を抽出','interview','#2d5e9e','#e7f0fb'],
+  ['新しい企画や資料を作りたい','分析→要件→制作エージェント','agents','#5b3a8f','#ece3f6'],
+  ['予算配分を検討したい','予算シミュレーターで参考試算','budget','#8a5a12','#fbeedd'],
+  ['施策の結果を確認したい','購買ファネル・実績・モデル補正','funnel','#1c7a51','#e0f3ea']
+ ];
+ var goalCards=goals.map(function(g){return '<button onclick="window.go(\''+g[2]+'\')" style="text-align:left;border:1px solid #e0e6ed;border-left:4px solid '+g[3]+';background:#fff;border-radius:12px;padding:14px 16px;cursor:pointer;transition:.15s"><div style="width:30px;height:30px;border-radius:9px;background:'+g[4]+';margin-bottom:8px"></div><div style="font-weight:800;color:#14253b;font-size:14px">'+g[0]+'</div><div style="font-size:11.5px;color:#64768b;margin-top:3px">'+g[1]+'</div></button>';}).join('');
+ var goalSec='<div class="card" style="border:0;background:transparent;box-shadow:none;padding:0"><div style="font-size:16px;font-weight:900;color:#14253b;margin:4px 2px 10px">何をしたいですか？</div><div class="mh-hgrid mh-hgrid-4" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">'+goalCards+'</div></div>';
+ /* 進行中プロジェクト */
+ var scn='';try{scn=JSON.parse(localStorage.getItem('pal_mhub_twin_v1_scn_state')||'{}');}catch(e){scn={};}
+ var projRow='';try{var ps=(DB?DB.db().projects:[]).slice(0,4);projRow=ps.map(function(pr){return '<div style="border:1px solid #e0e6ed;border-radius:10px;padding:11px 13px;background:#fff"><div style="font-size:10px;color:#64768b">'+(pr.status||'')+'</div><div style="font-weight:700;color:#14253b;font-size:13px">'+(pr.title||'')+'</div><div style="font-size:11px;color:#64768b">'+(pr.product||'')+'</div></div>';}).join('');}catch(e){}
+ var resume=(scn&&scn.id)?'<button onclick="window.go(\'scenarios\')" style="border:0;background:#137e73;color:#fff;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:12px">続きから再開（'+scn.id+'）→</button>':'';
+ var projSec='<div class="card"><div class="card-h">進行中のプロジェクト '+resume+'</div><div class="card-b"><div class="mh-hgrid mh-hgrid-4" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">'+(projRow||'<span class="muted">デモプロジェクトを表示</span>')+'</div></div></div>';
+ /* 仮想市場の状況 */
+ var mktSec='<div class="card"><div class="card-h">仮想市場の状況 <span class="muted" style="font-weight:400;font-size:11px">DEMO</span></div><div class="card-b"><div class="mh-hgrid mh-hgrid-5" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">'+
+  [['仮想企業',(C.companies||0)+'社'],['仮想顧客',((C.contacts||0))+'名'],['検証PJ',(C.projects||0)+'件'],['仮想商談',(C.opps||0)+'件'],['仮想日時',clock||'—']].map(function(x){return '<div><div style="font-size:11px;color:#64768b">'+x[0]+'</div><div style="font-size:18px;font-weight:800;color:#14253b">'+x[1]+'</div></div>';}).join('')+'</div></div></div>';
+ /* プレゼン・デモ */
+ var presSec='<div class="card" style="background:linear-gradient(135deg,#17304d,#0f2338);color:#fff"><div class="card-b" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><div><div style="font-size:11px;letter-spacing:1.5px;font-weight:800;color:#7edbce">PRESENTATION / GUIDED DEMO</div><div style="font-weight:800;font-size:15px">5分でM-HUB Intelligenceの価値を説明</div><div style="font-size:12px;color:#c5d4e3">顧客理解→検証→調査→企画・制作→実行→実績→学習</div></div><div style="display:flex;gap:8px"><button onclick="window.go(\'present\')" style="border:0;background:#82dfce;color:#123b39;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer">プレゼンを開始 →</button><button onclick="window.go(\'scenarios\')" style="border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer">デモシナリオ</button></div></div></div>';
+ /* 全体像フロー */
+ var flow='<div class="card"><div class="card-h">M-HUB の全体像</div><div class="card-b"><div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">'+['顧客理解','検証','調査','企画・制作','実行','実績','学習'].map(function(x,i,a){return '<span style="background:#f1f5f9;border:1px solid #e0e6ed;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#14253b">'+x+'</span>'+(i<a.length-1?'<span style="color:#94a3b8">→</span>':'');}).join('')+'</div></div></div>';
+ return goalSec+presSec+projSec+mktSec+flow;
+},
+ verifyFrom:function(ctx){ctx=ctx||{};if(ctx.theme)sim.theme=ctx.theme;if(ctx.angle)sim.angle=ctx.angle;if(ctx.cat)sim.cat=ctx.cat;if(window.go)window.go('simulation');}
 };
 })();
